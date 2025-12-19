@@ -1,0 +1,45 @@
+const { Client, GatewayIntentBits } = require("discord.js");
+const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require("@discordjs/voice");
+const ytdl = require("ytdl-core");
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
+  ]
+});
+
+client.once("ready", () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+});
+
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  if (message.content.startsWith("!play")) {
+    const url = message.content.split(" ")[1];
+    if (!url) return message.reply("❌ حط لينك الأغنية");
+
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) return message.reply("❌ ادخل روم صوتي الأول");
+
+    const connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: message.guild.id,
+      adapterCreator: message.guild.voiceAdapterCreator,
+    });
+
+    const stream = ytdl(url, { filter: "audioonly" });
+    const resource = createAudioResource(stream);
+    const player = createAudioPlayer();
+
+    player.play(resource);
+    connection.subscribe(player);
+
+    message.reply("🎶 شغّلت الأغنية");
+  }
+});
+
+client.login(process.env.TOKEN);
